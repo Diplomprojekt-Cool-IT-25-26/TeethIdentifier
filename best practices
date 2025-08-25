@@ -1,0 +1,56 @@
+This is a small guide on the best practices for documenting our code
+
+1.
+We use 4 spaces for line starts
+example:
+
+def add(a):
+    for i in range(6):
+        print(a + i)
+
+2. 
+Use camelCase for variable names 
+example: exampleVariable
+
+3. 
+Use snake_case in all caps for constants 
+example: THIS_IS_A_CONSTANT
+
+4. 
+Define all global variables and constants at the top of the file
+
+5. 
+All code files should start with a DOCSTRING, a multiline comment that explains what happens in this file 
+example: 
+
+"""
+This file contains the functionality for ...
+
+Here is some helpful information you should know
+"""
+
+6.
+Document code as well as possible, don't overdo it
+example:
+
+#this function adds two numbers after doubling the first
+def add(a, b):
+    #this is where the first number 
+    a = a*2
+    #this is where the numbers are added and the result returned
+    return a + b
+
+short comments can also be in line
+example:
+
+def add(a, b):
+    a = a*2    #doubles first number
+    return a + b    #adds and returns result
+
+7.
+Spaces make code readable. Use them!
+examples:
+
+x = y + z
+
+print("x is equal to " + x)
