@@ -9,8 +9,10 @@ def add(a):
         print(a + i)
 
 2. 
-Use camelCase for variable names 
-example: exampleVariable
+Use snake_case for variable and function names 
+examples: 
+example_variable
+example_function()
 
 3. 
 Use snake_case in all caps for constants 
