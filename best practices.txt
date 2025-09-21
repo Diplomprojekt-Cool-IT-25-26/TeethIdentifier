@@ -1,5 +1,7 @@
 This is a small guide on the best practices for documenting our code
 
+Python PEP 8
+
 1.
 We use 4 spaces for line starts
 example:
