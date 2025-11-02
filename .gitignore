@@ -1,0 +1,50 @@
+# Dataset folders (large files - don't commit)
+data_part_1/
+data_part_2/
+data_part_3/
+data_part_4/
+data_part_5/
+data_part_6/
+data_part_7/
+3DTeethSeg_dataset/
+
+# Generated training data
+training_data.pkl
+*.pkl
+
+# Generated visualizations
+sample_patches_visualization.png
+gingiva_vs_tooth_comparison.png
+*.png
+*.jpg
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Jupyter Notebooks (if you create any)
+.ipynb_checkpoints/
+*.ipynb
+
+# Logs
+*.log
