@@ -1,0 +1,27 @@
+# Existing dependencies
+numpy>=1.21.0
+trimesh>=3.9.0
+opencv-python>=4.5.0
+scipy>=1.7.0
+matplotlib>=3.4.0
+
+# Neural network and ML dependencies
+# TensorFlow 2.9 - Last version with native Windows GPU support
+# Requires Python 3.7-3.10, CUDA 11.2, cuDNN 8.1.0
+# Using Python 3.10.11 for Windows GPU compatibility
+tensorflow==2.9.0             # Native Windows GPU support for RTX 3070
+pyyaml>=6.0                   # Configuration files
+scikit-learn>=1.3.0           # Evaluation metrics
+seaborn>=0.12.0               # Visualization (heatmaps, confusion matrix)
+streamlit>=1.30.0             # Interactive dashboard
+tqdm>=4.65.0                  # Progress bars
+pillow>=9.0.0                 # Image processing
+pandas>=2.0.0                 # Data analysis
+
+# GPU acceleration (optional) - for fast patch generation
+# Compatible with CUDA 11.2 (RTX 3070) and TensorFlow 2.9
+torch==1.12.0+cu113           # PyTorch with CUDA 11.3 (compatible with CUDA 11.2)
+pytorch3d==0.7.2              # 3D mesh rendering and rasterization
+kornia==0.6.8                 # GPU-accelerated image processing (Gaussian blur)
+fvcore==0.1.5                 # PyTorch3D dependency
+iopath==0.1.10                # PyTorch3D dependency
