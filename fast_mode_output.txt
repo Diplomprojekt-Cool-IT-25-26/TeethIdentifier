@@ -1,0 +1,26 @@
+======================================================================
+3D Dental Scan Prediction Visualization
+[FAST MODE] Sampling 1/25th of vertices
+======================================================================
+
+Using scan: O52P1SZT_lower.obj
+
+Colors:
+  Blue = Tooth (predicted)
+  Pink = Gingiva (predicted)
+
+
+[1/5] Loading mesh and annotations...
+  Vertices: 93,288
+  [FAST MODE] Random sampling (3,731 predictions, 1/25th of mesh)
+  Labels loaded from: O52P1SZT_lower.json
+Traceback (most recent call last):
+  File "D:\All projects\TeethIdentifier\visualize_predictions.py", line 486, in <module>
+    sys.exit(main())
+  File "D:\All projects\TeethIdentifier\visualize_predictions.py", line 373, in main
+    mesh, predictions, confidences = predict_scan_3d(obj_path, str(model_path), config, sample_rate=sample_rate)
+  File "D:\All projects\TeethIdentifier\visualize_predictions.py", line 126, in predict_scan_3d
+    print(f"  \u23f1\ufe0f  Time: {time.time() - step_start:.2f}s")
+  File "C:\Users\egora\AppData\Local\Programs\Python\Python310\lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+UnicodeEncodeError: 'charmap' codec can't encode characters in position 2-3: character maps to <undefined>

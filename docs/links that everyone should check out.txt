@@ -1,0 +1,5 @@
+https://github.com/abenhamadou/3DTeethSeg_MICCAI_Challenges?tab=readme-ov-file
+ 
+https://arxiv.org/abs/2305.18277
+
+https://www.tensorflow.org/tutorials

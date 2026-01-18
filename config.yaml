@@ -1,0 +1,166 @@
+# TeethIdentifier Configuration File
+# Central configuration for neural network training and inference
+
+# Project metadata
+project_name: "TeethIdentifier"
+version: "1.0.0"
+description: "Binary classification of teeth vs gingiva from 3D dental scans"
+
+# Paths
+paths:
+  data_root: "D:/All projects/TeethIdentifier/data"
+  training_data_dir: "ml_outputs/training_data"
+  model_dir: "ml_outputs/models"
+  logs_dir: "ml_outputs/logs"
+  results_dir: "ml_outputs/results"
+  exports_dir: "ml_outputs/exports/predictions"
+
+# Data generation settings
+data_generation:
+  scans_for_training: 100  # Number of scans to use (out of 1850 total)
+  samples_per_scan: 500     # Training samples per scan
+  patch_size: 100           # Image patch size (100x100)
+  patch_radius: 5.0         # Radius around each point for patch generation
+  balance_classes: true     # Equal gingiva/tooth samples
+
+  # Boundary-weighted sampling (focus on teeth/gingiva transitions)
+  boundary_weighted: true   # Enable boundary-weighted sampling
+  boundary_weight: 0.60     # 60% from boundaries, 40% from clear regions
+  boundary_radius: 5.0      # Distance to consider "near boundary"
+
+  # Train/validation/test split ratios
+  split_ratios:
+    train: 0.70   # 70% for training
+    val: 0.15     # 15% for validation
+    test: 0.15    # 15% for testing
+
+  split_by: patient_id  # Split by patient to prevent data leakage
+  random_seed: 42       # For reproducibility
+
+# Model architecture
+model:
+  name: "TeethNet"
+  input_shape: [100, 100, 3]  # RGB image patches
+
+  # Convolutional blocks
+  conv_filters: [32, 64, 128]  # Filters for each Conv2D layer
+  kernel_size: 3               # 3x3 kernels
+  pool_size: 2                 # 2x2 max pooling
+  activation: relu             # ReLU activation for Conv2D
+
+  # Dense layers
+  dense_units: [256, 64]  # Units for dense layers
+
+  # Regularization
+  dropout_rates: [0.25, 0.25, 0.3, 0.5, 0.4]  # Dropout after each block
+  use_batch_norm: true                         # Batch normalization
+
+  # Output layer
+  final_activation: sigmoid  # Sigmoid for binary classification
+
+# Training configuration
+training:
+  # Basic settings
+  batch_size: 64        # Batch size for RTX 3070 8GB VRAM (safe for continue training)
+  epochs: 100           # Maximum epochs (increased for better boundary learning)
+  learning_rate: 0.001  # Initial learning rate for Adam
+
+  # Optimizer
+  optimizer: adam
+
+  # Loss and metrics
+  loss: binary_crossentropy
+  metrics:
+    - accuracy
+    - precision
+    - recall
+    - auc
+
+  # Callbacks
+  early_stopping_patience: 20    # Stop if val_loss doesn't improve for 20 epochs
+  reduce_lr_patience: 7          # Reduce LR if val_loss plateaus for 7 epochs
+  reduce_lr_factor: 0.5          # Multiply LR by 0.5
+  min_learning_rate: 0.00001     # Minimum LR floor
+
+  # Advanced settings
+  use_mixed_precision: true   # Enable mixed precision (2× speedup on RTX 3070)
+  use_class_weights: false    # Don't use class weights (data is balanced)
+  validation_frequency: 1     # Validate every epoch
+
+  # Checkpointing
+  save_best_only: true             # Only save best model
+  monitor_metric: val_accuracy     # Metric to monitor for best model
+
+# GPU settings
+gpu:
+  device: "/GPU:0"            # Use first GPU
+  allow_memory_growth: true   # Allocate memory as needed
+  force_gpu: false           # Allow CPU fallback if GPU not available
+
+# GPU acceleration for patch generation (PyTorch)
+# Provides 12x speedup for inference (30 min → 2.8 min for 93k vertices)
+gpu_acceleration:
+  enabled: true               # Use GPU-accelerated patch generation if available
+  batch_size: 1024           # Batch size for RTX 3070 (8GB VRAM) - reduced to prevent memory fragmentation
+  fallback_to_cpu: true      # Auto-fallback to CPU if GPU unavailable
+
+# Evaluation settings
+evaluation:
+  threshold: 0.5  # Classification threshold (prob >= 0.5 → tooth)
+
+  # Metrics to compute
+  metrics:
+    - accuracy
+    - precision
+    - recall
+    - f1_score
+    - roc_auc
+    - confusion_matrix
+
+  # Visualizations to generate
+  plots:
+    - confusion_matrix
+    - roc_curve
+    - precision_recall_curve
+    - training_history
+
+  # Per-patient analysis
+  per_patient_analysis: true
+
+  # Sample predictions to save
+  num_sample_predictions: 20
+
+# Inference settings
+inference:
+  batch_size: 512         # Larger batch for inference (no gradients, can be bigger)
+  threshold: 0.5          # Classification threshold
+  output_format: json     # JSON side-car format
+  include_metadata: true  # Include prediction metadata in JSON
+
+  # Metadata to include
+  metadata:
+    model_version: "v1.0"
+    prediction_date: true
+    model_path: true
+    threshold: true
+
+# Logging
+logging:
+  level: INFO                # Logging level
+  tensorboard: true          # Enable TensorBoard logging
+  csv_logging: true          # Save metrics to CSV
+  console_logging: true      # Print to console
+  histogram_freq: 1          # TensorBoard histogram frequency
+
+# Reproducibility
+random_seed: 42  # Global random seed for NumPy, TensorFlow, Python random
+
+# Data augmentation (disabled - slows training)
+augmentation:
+  enabled: false
+  rotation_range: 10        # Degrees (reduced from 15)
+  horizontal_flip: true
+  vertical_flip: true
+  brightness_range: [0.9, 1.1]  # Reduced from [0.8, 1.2]
+  zoom_range: 0.05          # Reduced from 0.1
+  gaussian_noise_std: 0.01
