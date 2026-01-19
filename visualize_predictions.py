@@ -291,6 +291,8 @@ def main():
                         help='Fast mode: sample every 25th vertex (~15 sec instead of 5 min)')
     parser.add_argument('--sample-rate', type=int, default=1,
                         help='Sample every Nth vertex (1=all, 25=fast mode)')
+    parser.add_argument('--scan', type=str, default=None,
+                        help='Pattern to match scan filename (e.g., PM5K088N)')
     args = parser.parse_args()
 
     # Determine sample rate
@@ -318,13 +320,19 @@ def main():
 
     # Find a test scan to visualize
     data_path = Path(config['paths']['data_root'])
-    obj_files = list(data_path.glob("**/*.obj"))
 
-    if not obj_files:
-        print(f"\n[ERROR] No .obj files found in {data_path}")
-        return 1
+    if args.scan:
+        obj_files = list(data_path.glob(f"**/*{args.scan}*.obj"))
+        if not obj_files:
+            print(f"\n[ERROR] No .obj files matching '{args.scan}' found in {data_path}")
+            return 1
+    else:
+        obj_files = list(data_path.glob("**/*.obj"))
+        if not obj_files:
+            print(f"\n[ERROR] No .obj files found in {data_path}")
+            return 1
 
-    # Use the first scan
+    # Use the first matching scan
     obj_path = str(obj_files[0])
 
     print(f"\nUsing scan: {Path(obj_path).name}")
@@ -340,8 +348,10 @@ def main():
     output_dir = Path(config['paths']['results_dir'])
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Add suffix for fast mode
-    suffix = '_fast' if sample_rate > 1 else ''
+    # Create suffix with scan name and mode
+    scan_name = Path(obj_path).stem  # e.g., O52P1SZT_lower
+    mode_suffix = '_fast' if sample_rate > 1 else ''
+    suffix = f'_{scan_name}{mode_suffix}'
 
     # Save colored mesh to OBJ file
     mesh_output_path = output_dir / f'3d_prediction_mesh{suffix}.obj'

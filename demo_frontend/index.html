@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DentAI Pro - Dental Scan Analysis</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar">
+        <div class="logo">
+            <div class="logo-icon">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C9.5 2 7.5 3.5 7 5.5C6.5 4 5 3 3.5 3C2 3 1 4 1 5.5C1 8 4 11 7 14C7.5 12.5 8 11 9 10C10 9 11 8.5 12 8.5C13 8.5 14 9 15 10C16 11 16.5 12.5 17 14C20 11 23 8 23 5.5C23 4 22 3 20.5 3C19 3 17.5 4 17 5.5C16.5 3.5 14.5 2 12 2Z"/>
+                </svg>
+            </div>
+            <span class="logo-text">DentAI Pro</span>
+        </div>
+
+        <ul class="nav-menu">
+            <li class="nav-item" data-tab="dashboard">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="14" width="7" height="7"></rect>
+                    <rect x="3" y="14" width="7" height="7"></rect>
+                </svg>
+                <span>Dashboard</span>
+            </li>
+            <li class="nav-item active" data-tab="classification">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                    <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                </svg>
+                <span>3D Classification</span>
+            </li>
+            <li class="nav-item" data-tab="patients">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                <span>Patient Records</span>
+            </li>
+            <li class="nav-item" data-tab="history">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <span>Scan History</span>
+            </li>
+            <li class="nav-item" data-tab="settings">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                </svg>
+                <span>Settings</span>
+            </li>
+        </ul>
+
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <div class="user-avatar">DR</div>
+                <div class="user-details">
+                    <span class="user-name">Dr. Roberts</span>
+                    <span class="user-role">Orthodontist</span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <!-- Dashboard Tab (Placeholder) -->
+        <section class="tab-content" id="dashboard">
+            <div class="page-header">
+                <h1>Dashboard</h1>
+                <p class="subtitle">Welcome back, Dr. Roberts</p>
+            </div>
+            <div class="placeholder-content">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value">127</div>
+                        <div class="stat-label">Scans This Month</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">98.2%</div>
+                        <div class="stat-label">Avg. Accuracy</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">24</div>
+                        <div class="stat-label">Patients Today</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">3.2s</div>
+                        <div class="stat-label">Avg. Processing</div>
+                    </div>
+                </div>
+                <div class="coming-soon">
+                    <p>Detailed analytics coming soon</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Classification Tab (MAIN FUNCTIONAL TAB) -->
+        <section class="tab-content active" id="classification">
+            <div class="page-header">
+                <h1>3D Scan Classification</h1>
+                <p class="subtitle">AI-powered teeth and gingiva segmentation</p>
+            </div>
+
+            <div class="classification-container">
+                <!-- Left Panel: Upload & Controls -->
+                <div class="control-panel">
+                    <div class="upload-section">
+                        <div class="upload-zone" id="uploadZone">
+                            <div class="upload-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="17 8 12 3 7 8"></polyline>
+                                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                                </svg>
+                            </div>
+                            <p class="upload-text">Drag & drop your 3D scan</p>
+                            <p class="upload-subtext">or click to browse</p>
+                            <p class="upload-formats">Supports: OBJ files</p>
+                            <input type="file" id="fileInput" accept=".obj" hidden>
+                        </div>
+
+                        <div class="file-info" id="fileInfo" style="display: none;">
+                            <div class="file-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                </svg>
+                            </div>
+                            <div class="file-details">
+                                <span class="file-name" id="fileName">scan.obj</span>
+                                <span class="file-size" id="fileSize">2.4 MB</span>
+                            </div>
+                            <button class="remove-file" id="removeFile">&times;</button>
+                        </div>
+                    </div>
+
+                    <div class="model-settings">
+                        <h3>Classification Settings</h3>
+                        <div class="setting-group">
+                            <label>Processing Mode</label>
+                            <select id="processingMode">
+                                <option value="fast">Fast (Preview)</option>
+                                <option value="standard" selected>Standard</option>
+                                <option value="high">High Precision</option>
+                            </select>
+                        </div>
+                        <div class="setting-group">
+                            <label>Model Version</label>
+                            <select id="modelVersion">
+                                <option value="v2" selected>DentAI v2.0 (Latest)</option>
+                                <option value="v1">DentAI v1.0</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button class="classify-btn" id="classifyBtn" disabled>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                        </svg>
+                        <span>Run Classification</span>
+                    </button>
+
+                    <!-- Progress Section -->
+                    <div class="progress-section" id="progressSection" style="display: none;">
+                        <div class="progress-header">
+                            <span class="progress-title">Processing...</span>
+                            <span class="progress-percent" id="progressPercent">0%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                        <div class="progress-status" id="progressStatus">Initializing neural network...</div>
+                    </div>
+
+                    <!-- Results Section -->
+                    <div class="results-section" id="resultsSection" style="display: none;">
+                        <h3>Classification Results</h3>
+                        <div class="result-item">
+                            <div class="result-color teeth-color"></div>
+                            <div class="result-info">
+                                <span class="result-label">Teeth</span>
+                                <span class="result-value" id="teethPercent">54.8%</span>
+                            </div>
+                            <div class="result-bar">
+                                <div class="result-bar-fill teeth-fill" id="teethBar"></div>
+                            </div>
+                        </div>
+                        <div class="result-item">
+                            <div class="result-color gingiva-color"></div>
+                            <div class="result-info">
+                                <span class="result-label">Gingiva</span>
+                                <span class="result-value" id="gingivaPercent">45.2%</span>
+                            </div>
+                            <div class="result-bar">
+                                <div class="result-bar-fill gingiva-fill" id="gingivaBar"></div>
+                            </div>
+                        </div>
+                        <div class="result-meta">
+                            <div class="meta-item">
+                                <span class="meta-label">Vertices Processed</span>
+                                <span class="meta-value" id="vertexCount">93,288</span>
+                            </div>
+                            <div class="meta-item">
+                                <span class="meta-label">Processing Time</span>
+                                <span class="meta-value" id="processingTime">3.2s</span>
+                            </div>
+                            <div class="meta-item">
+                                <span class="meta-label">Confidence</span>
+                                <span class="meta-value" id="confidence">97.3%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Panel: 3D Viewer -->
+                <div class="viewer-panel">
+                    <div class="viewer-header">
+                        <div class="viewer-tabs">
+                            <button class="viewer-tab active" data-view="classified">Classified</button>
+                            <button class="viewer-tab" data-view="original">Original</button>
+                            <button class="viewer-tab" data-view="comparison">Split View</button>
+                        </div>
+                        <div class="viewer-controls">
+                            <button class="viewer-control" id="resetView" title="Reset View">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="1 4 1 10 7 10"></polyline>
+                                    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                                </svg>
+                            </button>
+                            <button class="viewer-control" id="toggleWireframe" title="Toggle Wireframe">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                                    <path d="M2 17l10 5 10-5"></path>
+                                    <path d="M2 12l10 5 10-5"></path>
+                                </svg>
+                            </button>
+                            <button class="viewer-control" id="fullscreen" title="Fullscreen">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="15 3 21 3 21 9"></polyline>
+                                    <polyline points="9 21 3 21 3 15"></polyline>
+                                    <line x1="21" y1="3" x2="14" y2="10"></line>
+                                    <line x1="3" y1="21" x2="10" y2="14"></line>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="viewer-container" id="viewerContainer">
+                        <div class="viewer-placeholder" id="viewerPlaceholder">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                            </svg>
+                            <p>Upload a 3D scan to begin</p>
+                        </div>
+                        <canvas id="viewerCanvas"></canvas>
+                    </div>
+                    <div class="viewer-footer">
+                        <span class="viewer-hint">Left-click + drag to rotate | Scroll to zoom | Right-click + drag to pan</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Patients Tab (Placeholder) -->
+        <section class="tab-content" id="patients">
+            <div class="page-header">
+                <h1>Patient Records</h1>
+                <p class="subtitle">Manage patient scan history</p>
+            </div>
+            <div class="placeholder-content">
+                <div class="patient-list">
+                    <div class="patient-card">
+                        <div class="patient-avatar">JD</div>
+                        <div class="patient-info">
+                            <span class="patient-name">John Doe</span>
+                            <span class="patient-id">ID: P-2024-0142</span>
+                        </div>
+                        <span class="patient-scans">12 scans</span>
+                    </div>
+                    <div class="patient-card">
+                        <div class="patient-avatar">AS</div>
+                        <div class="patient-info">
+                            <span class="patient-name">Alice Smith</span>
+                            <span class="patient-id">ID: P-2024-0089</span>
+                        </div>
+                        <span class="patient-scans">8 scans</span>
+                    </div>
+                    <div class="patient-card">
+                        <div class="patient-avatar">RJ</div>
+                        <div class="patient-info">
+                            <span class="patient-name">Robert Johnson</span>
+                            <span class="patient-id">ID: P-2024-0201</span>
+                        </div>
+                        <span class="patient-scans">5 scans</span>
+                    </div>
+                </div>
+                <div class="coming-soon">
+                    <p>Full patient management coming soon</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- History Tab (Placeholder) -->
+        <section class="tab-content" id="history">
+            <div class="page-header">
+                <h1>Scan History</h1>
+                <p class="subtitle">Review past classifications</p>
+            </div>
+            <div class="placeholder-content">
+                <div class="coming-soon">
+                    <p>Scan history feature coming soon</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Settings Tab (Placeholder) -->
+        <section class="tab-content" id="settings">
+            <div class="page-header">
+                <h1>Settings</h1>
+                <p class="subtitle">Configure application preferences</p>
+            </div>
+            <div class="placeholder-content">
+                <div class="settings-section">
+                    <h3>Model Configuration</h3>
+                    <div class="setting-row">
+                        <span>GPU Acceleration</span>
+                        <label class="toggle">
+                            <input type="checkbox" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-row">
+                        <span>Auto-save Results</span>
+                        <label class="toggle">
+                            <input type="checkbox" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+                <div class="coming-soon">
+                    <p>Additional settings coming soon</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
