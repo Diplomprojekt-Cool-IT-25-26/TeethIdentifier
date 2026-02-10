@@ -133,8 +133,6 @@ class DatasetSampler:
         scan_info = self.scan_files[scan_index]
         
         try:
-            # Load mesh
-            print(f"Loading: {scan_info['base_name']}")
             self.current_mesh = trimesh.load(scan_info['obj_file'])
             
             # Load annotations
@@ -144,15 +142,6 @@ class DatasetSampler:
             # Build spatial index for efficient neighbor queries
             self.kdtree = KDTree(self.current_mesh.vertices)
             self.current_scan_info = scan_info
-            
-            # Print basic info
-            labels = np.array(self.current_annotations['labels'])
-            gingiva_count = np.sum(labels == GINGIVA_LABEL)
-            teeth_count = np.sum(labels != GINGIVA_LABEL)
-            
-            print(f"  Vertices: {len(labels):,}")
-            print(f"  Gingiva: {gingiva_count:,}, Teeth: {teeth_count:,}")
-            
             return True
             
         except Exception as e:
@@ -323,8 +312,6 @@ class DatasetSampler:
             
             samples.append(sample)
             
-            if (i + 1) % 100 == 0:
-                print(f"  Generated {i + 1}/{len(sample_indices)} samples")
         
         return samples
     
@@ -434,9 +421,6 @@ class DatasetSampler:
         with open(output_file, 'wb') as f:
             pickle.dump(data, f)
         
-        print(f"\nSaved {len(samples)} training samples to {output_file}")
-        print(f"  Image shape: {data['images'].shape}")
-        print(f"  Label distribution: {np.bincount(data['labels'])}")
 
 
 def main():
@@ -466,7 +450,7 @@ def main():
     # Save training data
     sampler.save_training_data(training_samples, "training_data.pkl")
     
-    print("\n✓ Complete!")
+    print("Complete")
 
 
 if __name__ == "__main__":

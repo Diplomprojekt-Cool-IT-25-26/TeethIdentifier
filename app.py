@@ -1,19 +1,4 @@
-"""
-Streamlit Dashboard for TeethIdentifier.
-
-Interactive web application for step-by-step visualization of the
-teeth vs gingiva classification pipeline.
-
-Usage:
-    streamlit run app.py
-
-Features:
-- Step 1: Data Overview - View dataset statistics and sample images
-- Step 2: Model Configuration - View/edit hyperparameters and model architecture
-- Step 3: Training - Monitor live training progress
-- Step 4: Evaluation - View performance metrics and confusion matrix
-- Step 5: Inference - Upload OBJ files and download predictions
-"""
+"""Streamlit Dashboard for TeethIdentifier."""
 
 import streamlit as st
 import yaml
@@ -27,48 +12,33 @@ from pathlib import Path
 import sys
 import os
 
-# Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-# Configure page
 st.set_page_config(
     page_title="TeethIdentifier",
-    page_icon="🦷",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS
 st.markdown("""
 <style>
-.big-font {
-    font-size:20px !important;
-    font-weight: bold;
-}
-.metric-card {
-    background-color: #f0f2f6;
-    padding: 20px;
-    border-radius: 10px;
-    text-align: center;
-}
+.big-font { font-size:20px !important; font-weight: bold; }
+.metric-card { background-color: #f0f2f6; padding: 20px; border-radius: 10px; text-align: center; }
 </style>
 """, unsafe_allow_html=True)
 
 
 def load_config():
-    """Load configuration from YAML."""
     config_path = 'config.yaml'
     if not os.path.exists(config_path):
         st.error(f"Configuration file not found: {config_path}")
         return None
-
     with open(config_path, 'r') as f:
         return yaml.safe_load(f)
 
 
 def show_data_overview():
-    """Step 1: Data Overview."""
-    st.header("📊 Step 1: Data Overview")
+    st.header("Step 1: Data Overview")
 
     config = load_config()
     if not config:
@@ -76,32 +46,24 @@ def show_data_overview():
 
     training_data_dir = Path(config['paths']['training_data_dir'])
 
-    # Check which datasets exist
     st.subheader("Dataset Availability")
-
     cols = st.columns(3)
     for i, split in enumerate(['train', 'val', 'test']):
         pkl_path = training_data_dir / f'{split}.pkl'
-
         with cols[i]:
             if pkl_path.exists():
-                st.success(f"✓ {split.upper()} dataset found")
+                st.success(f"{split.upper()} dataset found")
             else:
-                st.error(f"✗ {split.upper()} dataset not found")
+                st.error(f"{split.upper()} dataset not found")
 
-    # File uploader for viewing any pickle file
     st.subheader("View Dataset")
-
     uploaded_file = st.file_uploader("Upload a pickle file to view", type=['pkl'])
 
     if uploaded_file is not None:
         data = pickle.load(uploaded_file)
 
-        # Statistics
         st.subheader("Dataset Statistics")
-
         col1, col2, col3 = st.columns(3)
-
         with col1:
             st.metric("Total Samples", f"{len(data['labels']):,}")
         with col2:
@@ -111,26 +73,20 @@ def show_data_overview():
             n_teeth = np.sum(data['labels'] == 1)
             st.metric("Tooth Samples", f"{n_teeth:,}")
 
-        # Class distribution chart
         st.subheader("Class Distribution")
-
         fig, ax = plt.subplots(figsize=(8, 4))
         labels_unique, counts = np.unique(data['labels'], return_counts=True)
         ax.bar(['Gingiva (0)', 'Tooth (1)'], counts, color=['#ff9999', '#9999ff'])
         ax.set_ylabel('Count')
         ax.set_title('Class Distribution')
         for i, count in enumerate(counts):
-            ax.text(i, count + max(counts)*0.02, f'{count:,}',
-                   ha='center', va='bottom', fontweight='bold')
+            ax.text(i, count + max(counts)*0.02, f'{count:,}', ha='center', va='bottom', fontweight='bold')
         st.pyplot(fig)
         plt.close()
 
-        # Sample images
         st.subheader("Sample Patches")
-
         n_show = st.slider("Number of samples to display", 4, 20, 12)
-        indices = np.random.choice(len(data['labels']), min(n_show, len(data['labels'])),
-                                  replace=False)
+        indices = np.random.choice(len(data['labels']), min(n_show, len(data['labels'])), replace=False)
 
         cols_per_row = 4
         n_rows = (len(indices) + cols_per_row - 1) // cols_per_row
@@ -143,21 +99,17 @@ def show_data_overview():
                     idx = indices[idx_in_list]
                     with cols[col_idx]:
                         label = "Tooth" if data['labels'][idx] == 1 else "Gingiva"
-                        st.image(data['images'][idx], caption=label,
-                                use_container_width=True)
+                        st.image(data['images'][idx], caption=label, use_container_width=True)
 
 
 def show_model_config():
-    """Step 2: Model Configuration."""
-    st.header("⚙️ Step 2: Model Configuration")
+    st.header("Step 2: Model Configuration")
 
     config = load_config()
     if not config:
         return
 
-    # Display configuration
     st.subheader("Current Configuration")
-
     col1, col2 = st.columns(2)
 
     with col1:
@@ -175,58 +127,27 @@ def show_model_config():
         st.write(f"- Dense Units: {config['model']['dense_units']}")
         st.write(f"- Dropout Rates: {config['model']['dropout_rates']}")
 
-    # Model architecture visualization
     st.subheader("Model Architecture")
-
     arch_text = """
     Input (100, 100, 3) - RGB patches
-    ↓
-    Rescaling (normalize to [0, 1])
-    ↓
-    **Block 1:**
-    - Conv2D(32, 3×3, ReLU)
-    - BatchNormalization
-    - MaxPooling2D(2×2)
-    - Dropout(0.25)
-    ↓
-    **Block 2:**
-    - Conv2D(64, 3×3, ReLU)
-    - BatchNormalization
-    - MaxPooling2D(2×2)
-    - Dropout(0.25)
-    ↓
-    **Block 3:**
-    - Conv2D(128, 3×3, ReLU)
-    - BatchNormalization
-    - MaxPooling2D(2×2)
-    - Dropout(0.3)
-    ↓
-    Flatten
-    ↓
-    **Dense Layers:**
-    - Dense(256, ReLU)
-    - BatchNormalization
-    - Dropout(0.5)
-    - Dense(64, ReLU)
-    - Dropout(0.4)
-    - Dense(1, Sigmoid)
-    ↓
-    Output: Binary probability [0, 1]
+    -> Rescaling (normalize to [0, 1])
+    -> Block 1: Conv2D(32) -> BatchNorm -> MaxPool -> Dropout(0.25)
+    -> Block 2: Conv2D(64) -> BatchNorm -> MaxPool -> Dropout(0.25)
+    -> Block 3: Conv2D(128) -> BatchNorm -> MaxPool -> Dropout(0.3)
+    -> Flatten
+    -> Dense(256) -> BatchNorm -> Dropout(0.5)
+    -> Dense(64) -> Dropout(0.4)
+    -> Dense(1, Sigmoid)
+    -> Output: Binary probability [0, 1]
     """
-
     st.code(arch_text, language='text')
-
-    # Estimated parameters
-    st.info("📊 Estimated parameters: ~2.5M (fits in 8GB VRAM)")
+    st.info("Estimated parameters: ~2.5M (fits in 8GB VRAM)")
 
 
 def show_training():
-    """Step 3: Training."""
-    st.header("🚀 Step 3: Training")
+    st.header("Step 3: Training")
+    st.info("For live training, use: python src/train.py")
 
-    st.info("💡 For live training, use the command line: `python src/train.py`")
-
-    # Check if training history exists
     config = load_config()
     if not config:
         return
@@ -234,17 +155,14 @@ def show_training():
     history_path = Path(config['paths']['model_dir']) / 'training_history.json'
 
     if history_path.exists():
-        st.success("✓ Training history found")
+        st.success("Training history found")
 
         with open(history_path, 'r') as f:
             history = json.load(f)
 
-        # Plot training curves
         st.subheader("Training History")
-
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
 
-        # Accuracy
         ax1.plot(history['accuracy'], label='Train Accuracy', linewidth=2)
         ax1.plot(history['val_accuracy'], label='Val Accuracy', linewidth=2)
         ax1.set_title('Model Accuracy', fontsize=14, fontweight='bold')
@@ -253,7 +171,6 @@ def show_training():
         ax1.legend()
         ax1.grid(True, alpha=0.3)
 
-        # Loss
         ax2.plot(history['loss'], label='Train Loss', linewidth=2)
         ax2.plot(history['val_loss'], label='Val Loss', linewidth=2)
         ax2.set_title('Model Loss', fontsize=14, fontweight='bold')
@@ -266,11 +183,8 @@ def show_training():
         st.pyplot(fig)
         plt.close()
 
-        # Final metrics
         st.subheader("Final Metrics")
-
         col1, col2, col3, col4 = st.columns(4)
-
         with col1:
             st.metric("Train Accuracy", f"{history['accuracy'][-1]:.4f}")
         with col2:
@@ -279,63 +193,48 @@ def show_training():
             st.metric("Train Loss", f"{history['loss'][-1]:.4f}")
         with col4:
             st.metric("Val Loss", f"{history['val_loss'][-1]:.4f}")
-
     else:
-        st.warning("⚠ No training history found. Train the model first:")
+        st.warning("No training history found. Train the model first:")
         st.code("python src/train.py", language='bash')
 
 
 def show_evaluation():
-    """Step 4: Evaluation Results."""
-    st.header("📈 Step 4: Evaluation Results")
+    st.header("Step 4: Evaluation Results")
 
     config = load_config()
     if not config:
         return
 
     results_dir = Path(config['paths'].get('results_dir', 'results'))
-
-    # Check for results
     report_path = results_dir / 'classification_report.txt'
     cm_path = results_dir / 'confusion_matrix.png'
     roc_path = results_dir / 'roc_curve.png'
 
     if not report_path.exists():
-        st.warning("⚠ No evaluation results found. Run evaluation first:")
+        st.warning("No evaluation results found. Run evaluation first:")
         st.code("python src/evaluate.py", language='bash')
         return
 
-    # Load and display classification report
     st.subheader("Classification Report")
-
     with open(report_path, 'r') as f:
         report_text = f.read()
-
-    # Extract metrics from report
     st.code(report_text, language='text')
 
-    # Display confusion matrix
     if cm_path.exists():
         st.subheader("Confusion Matrix")
         st.image(str(cm_path), use_container_width=True)
 
-    # Display ROC curve
     if roc_path.exists():
         st.subheader("ROC Curve")
         st.image(str(roc_path), use_container_width=True)
 
-    # Per-patient analysis
     patient_csv = results_dir / 'per_patient_analysis.csv'
     if patient_csv.exists():
         st.subheader("Per-Patient Analysis")
-
         df = pd.read_csv(patient_csv)
-
         st.dataframe(df, use_container_width=True)
 
-        # Summary stats
         col1, col2, col3 = st.columns(3)
-
         with col1:
             st.metric("Mean Accuracy", f"{df['accuracy'].mean():.4f}")
         with col2:
@@ -345,8 +244,7 @@ def show_evaluation():
 
 
 def show_inference():
-    """Step 5: Inference on New Scans."""
-    st.header("🔮 Step 5: Inference")
+    st.header("Step 5: Inference")
 
     config = load_config()
     if not config:
@@ -355,29 +253,23 @@ def show_inference():
     model_path = Path(config['paths']['model_dir']) / 'teeth_classifier.keras'
 
     if not model_path.exists():
-        st.error("✗ Trained model not found. Train the model first:")
+        st.error("Trained model not found. Train the model first:")
         st.code("python src/train.py", language='bash')
         return
 
-    st.success(f"✓ Model found: {model_path}")
+    st.success(f"Model found: {model_path}")
 
-    # File uploader
     st.subheader("Upload OBJ File")
-
     uploaded_file = st.file_uploader("Choose an OBJ file", type=['obj'])
 
     if uploaded_file is not None:
-        st.info("📝 For inference, use the command line:")
-        st.code(f"python src/predict.py --obj {uploaded_file.name} --output exports/predictions",
-               language='bash')
+        st.info("For inference, use the command line:")
+        st.code(f"python src/predict.py --obj {uploaded_file.name} --output exports/predictions", language='bash')
 
         st.markdown("---")
-
         st.subheader("Expected Output")
-
         st.markdown("""
         The inference pipeline will generate a JSON side-car file with:
-
         ```json
         {
           "name": "PATIENT_001_upper.obj",
@@ -387,84 +279,56 @@ def show_inference():
           "prediction_metadata": {
             "model_version": "v1.0",
             "timestamp": "2026-01-05T...",
-            "threshold": 0.5,
-            "num_vertices": 50000,
-            "num_gingiva": 15000,
-            "num_teeth": 35000
+            "threshold": 0.5
           }
         }
         ```
         """)
 
         st.markdown("---")
-
         st.subheader("Batch Processing")
-
-        st.info("💡 To process multiple OBJ files:")
+        st.info("To process multiple OBJ files:")
         st.code("""
 # Process all OBJ files in a directory
 python src/predict.py --obj data/data_part_1/upper/ --output exports/predictions
 
 # Process specific files
 python src/predict.py --obj scan1.obj --output exports/
-python src/predict.py --obj scan2.obj --output exports/
         """, language='bash')
 
 
 def main():
-    """Main application."""
-    # Title
-    st.title("🦷 TeethIdentifier - Neural Network Training System")
+    st.title("TeethIdentifier - Neural Network Training System")
+    st.markdown("**Binary classification of teeth vs gingiva from 3D dental scans**")
 
-    st.markdown("""
-    **Binary classification of teeth vs gingiva from 3D dental scans**
-
-    Navigate through the steps using the sidebar to explore the entire pipeline.
-    """)
-
-    # Sidebar navigation
     st.sidebar.title("Navigation")
-
     page = st.sidebar.selectbox(
         "Select Step",
-        [
-            "1️⃣ Data Overview",
-            "2️⃣ Model Configuration",
-            "3️⃣ Training",
-            "4️⃣ Evaluation",
-            "5️⃣ Inference"
-        ]
+        ["1. Data Overview", "2. Model Configuration", "3. Training", "4. Evaluation", "5. Inference"]
     )
 
     st.sidebar.markdown("---")
-
-    # Quick actions
     st.sidebar.subheader("Quick Actions")
-
-    if st.sidebar.button("🔄 Reload Configuration"):
+    if st.sidebar.button("Reload Configuration"):
         st.cache_data.clear()
         st.rerun()
 
     st.sidebar.markdown("---")
-
-    # System info
     st.sidebar.subheader("System Info")
-
     config = load_config()
     if config:
         st.sidebar.info(f"**Project:** {config.get('project_name', 'TeethIdentifier')}")
         st.sidebar.info(f"**Version:** {config.get('version', 'v1.0')}")
 
-    # Route to appropriate page
-    if page == "1️⃣ Data Overview":
+    if page == "1. Data Overview":
         show_data_overview()
-    elif page == "2️⃣ Model Configuration":
+    elif page == "2. Model Configuration":
         show_model_config()
-    elif page == "3️⃣ Training":
+    elif page == "3. Training":
         show_training()
-    elif page == "4️⃣ Evaluation":
+    elif page == "4. Evaluation":
         show_evaluation()
-    elif page == "5️⃣ Inference":
+    elif page == "5. Inference":
         show_inference()
 
 
