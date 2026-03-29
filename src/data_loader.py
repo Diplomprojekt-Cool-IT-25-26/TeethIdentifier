@@ -65,17 +65,40 @@ class TeethDataLoader:
     def create_tf_dataset(self, images: np.ndarray, labels: np.ndarray,
                          is_training: bool = False) -> tf.data.Dataset:
         batch_size = self.config['training']['batch_size']
-        images = images.astype(np.float32)
-        dataset = tf.data.Dataset.from_tensor_slices((images, labels))
-        dataset = dataset.cache()
+        n = len(labels)
+        img_shape = images.shape[1:]
+        labels_int = labels.astype(np.int32)
 
+        # Use from_generator: pure Python, zero TF tensor device issues.
+        # Batch-by-batch uint8->float32 conversion keeps peak memory low.
+        def make_generator():
+            indices = np.arange(n)
+            if is_training:
+                np.random.shuffle(indices)
+            chunk_size = 1000
+            for start in range(0, n, chunk_size):
+                end = min(start + chunk_size, n)
+                chunk_idx = indices[start:end]
+                chunk_imgs = images[chunk_idx].astype(np.float32)
+                chunk_lbls = labels_int[chunk_idx]
+                for j in range(len(chunk_imgs)):
+                    yield chunk_imgs[j], chunk_lbls[j]
+
+        dataset = tf.data.Dataset.from_generator(
+            make_generator,
+            output_signature=(
+                tf.TensorSpec(shape=img_shape, dtype=tf.float32),
+                tf.TensorSpec(shape=(), dtype=tf.int32)
+            )
+        )
+
+        # Only repeat for training; val must restart from the beginning each
+        # epoch so every epoch sees the same samples in the same order.
         if is_training:
-            buffer_size = min(10000, len(labels))
-            dataset = dataset.shuffle(buffer_size=buffer_size, reshuffle_each_iteration=True)
+            dataset = dataset.repeat()
 
-        dataset = dataset.repeat()
         dataset = dataset.batch(batch_size)
-        dataset = dataset.prefetch(buffer_size=tf.data.AUTOTUNE)
+        dataset = dataset.prefetch(buffer_size=2)
         return dataset
 
     def load_train_data(self) -> Tuple[tf.data.Dataset, int]:

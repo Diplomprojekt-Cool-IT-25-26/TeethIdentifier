@@ -10,18 +10,26 @@ import numpy as np
 import trimesh
 import matplotlib.pyplot as plt
 from pathlib import Path
-from tensorflow import keras
 from scipy.spatial import KDTree
+
+# torch must be imported before TensorFlow to avoid a Windows DLL conflict
+# where TF's CUDA DLLs prevent torch/lib/shm.dll from loading
+try:
+    import torch
+    TORCH_AVAILABLE = True
+except (ImportError, OSError):
+    TORCH_AVAILABLE = False
+
+# Limit TF GPU memory so PyTorch can use the rest for patch generation
+import tensorflow as tf
+for gpu in tf.config.experimental.list_physical_devices('GPU'):
+    tf.config.experimental.set_memory_growth(gpu, True)
+from tensorflow import keras
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from tools.dataset_sampler import DatasetSampler
-
-try:
-    import torch
-    TORCH_AVAILABLE = True
-except ImportError:
-    TORCH_AVAILABLE = False
+from tools.mesh_morphology import postprocess
 
 
 def _propagate_predictions(mesh, sampled_indices, sampled_predictions, sampled_confidences):
@@ -31,7 +39,7 @@ def _propagate_predictions(mesh, sampled_indices, sampled_predictions, sampled_c
     return sampled_predictions[nearest_indices].tolist(), sampled_confidences[nearest_indices].tolist()
 
 
-def predict_scan_3d(obj_path: str, model_path: str, config: dict, sample_rate: int = 1):
+def predict_scan_3d(obj_path: str, model_path: str, config: dict, sample_rate: int = 1, postprocess_enabled: bool = True, majority_vote_iters: int = 0, open_gingiva_iters: int = 0, reconstruct_iters: int = 0):
     """Run model predictions on all vertices of a 3D scan."""
     start = time.time()
 
@@ -40,9 +48,14 @@ def predict_scan_3d(obj_path: str, model_path: str, config: dict, sample_rate: i
     n_verts = len(mesh.vertices)
     print(f"Loaded {n_verts:,} vertices" + (f" (sampling 1/{sample_rate})" if sample_rate > 1 else ""))
 
-    # Load annotations
-    with open(obj_path.replace('.obj', '.json'), 'r') as f:
-        annotations = json.load(f)
+    # Load annotations (required for CPU fallback; GPU path doesn't use them)
+    json_path = obj_path.replace('.obj', '.json')
+    if os.path.exists(json_path):
+        with open(json_path, 'r') as f:
+            annotations = json.load(f)
+    else:
+        annotations = None
+        print(f"Warning: no annotation JSON found, CPU fallback will not be available")
 
     # Load model
     model = keras.models.load_model(model_path)
@@ -59,16 +72,12 @@ def predict_scan_3d(obj_path: str, model_path: str, config: dict, sample_rate: i
 
     if use_gpu:
         try:
-            try:
-                from tools.gpu_patch_generator_v2 import GPUPatchGeneratorV2 as GPUGenerator
-            except ImportError:
-                from tools.gpu_patch_generator import GPUPatchGenerator as GPUGenerator
+            from tools.gpu_patch_generator_v3 import GPUPatchGeneratorV3 as GPUGenerator
 
             generator = GPUGenerator(
                 mesh=mesh, annotations=annotations,
                 patch_size=config['data_generation']['patch_size'],
-                patch_radius=config['data_generation']['patch_radius'],
-                precompute_neighbors=(sample_rate == 1)
+                patch_radius=config['data_generation']['patch_radius']
             )
 
             patches = generator.generate_patches_batch(
@@ -108,17 +117,22 @@ def predict_scan_3d(obj_path: str, model_path: str, config: dict, sample_rate: i
     predictions = np.array(predictions)
     confidences = np.array(confidences)
 
+    if postprocess_enabled:
+        predictions = postprocess(predictions, mesh, majority_vote_iters=majority_vote_iters, open_gingiva_iters=open_gingiva_iters, reconstruct_iters=reconstruct_iters)
+
     gingiva = np.sum(predictions == 0)
     teeth = np.sum(predictions == 1)
     print(f"Predictions: {gingiva:,} gingiva, {teeth:,} teeth ({time.time()-start:.1f}s)")
 
-    # Color mesh
-    colors = np.zeros((n_verts, 4), dtype=np.uint8)
-    for i, (pred, conf) in enumerate(zip(predictions, confidences)):
-        if pred == 1:
-            colors[i] = [100, 100, int(100 + 155 * conf), 255]
-        else:
-            colors[i] = [int(100 + 155 * (1 - conf)), 100, 150, 255]
+    # Color mesh — flat realistic colors, no confidence modulation
+    # Teeth: ivory/off-white  Gingiva: natural pink
+    TOOTH_COLOR   = [245, 240, 225, 255]
+    GINGIVA_COLOR = [220, 115, 130, 255]
+    colors = np.where(
+        (predictions == 1)[:, None],
+        TOOTH_COLOR,
+        GINGIVA_COLOR
+    ).astype(np.uint8)
     mesh.visual.vertex_colors = colors
 
     return mesh, predictions, confidences
@@ -129,9 +143,14 @@ def main():
     parser.add_argument('--fast', action='store_true', help='Sample 1/25th of vertices')
     parser.add_argument('--sample-rate', type=int, default=1, help='Sample every Nth vertex')
     parser.add_argument('--scan', type=str, default=None, help='Pattern to match scan filename')
+    parser.add_argument('--no-postprocess', action='store_true', help='Skip post-processing (for comparison)')
+    parser.add_argument('--majority-vote', type=int, default=0, metavar='N', help='Majority vote iterations to trim gingiva peninsulas (0 = off)')
+    parser.add_argument('--open-gingiva', type=int, default=0, metavar='N', help='Opening iterations on gingiva to remove fingers (0 = off)')
+    parser.add_argument('--reconstruct', type=int, default=0, metavar='N', help='Morphological reconstruction erosion depth to remove fingers (0 = off)')
     args = parser.parse_args()
 
     sample_rate = 25 if args.fast else args.sample_rate
+    postprocess_enabled = not args.no_postprocess
 
     config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config.yaml')
     with open(config_path, 'r') as f:
@@ -144,7 +163,7 @@ def main():
 
     data_path = Path(config['paths']['data_root'])
     pattern = f"**/*{args.scan}*.obj" if args.scan else "**/*.obj"
-    obj_files = list(data_path.glob(pattern))
+    obj_files = sorted(data_path.glob(pattern))
     if not obj_files:
         print(f"[ERROR] No .obj files found")
         return 1
@@ -152,12 +171,17 @@ def main():
     obj_path = str(obj_files[0])
     print(f"Scan: {Path(obj_path).name}")
 
-    mesh, predictions, confidences = predict_scan_3d(obj_path, str(model_path), config, sample_rate)
+    mesh, predictions, confidences = predict_scan_3d(obj_path, str(model_path), config, sample_rate, postprocess_enabled, args.majority_vote, args.open_gingiva, args.reconstruct)
 
     # Save outputs
     output_dir = Path(config['paths']['results_dir'])
     output_dir.mkdir(parents=True, exist_ok=True)
-    suffix = f"_{Path(obj_path).stem}" + ('_fast' if sample_rate > 1 else '')
+    suffix = (f"_{Path(obj_path).stem}"
+              + ('_fast' if sample_rate > 1 else '')
+              + ('' if postprocess_enabled else '_raw')
+              + (f'_mv{args.majority_vote}' if args.majority_vote > 0 else '')
+              + (f'_og{args.open_gingiva}' if args.open_gingiva > 0 else '')
+              + (f'_rc{args.reconstruct}' if args.reconstruct > 0 else ''))
 
     mesh_path = output_dir / f'prediction_mesh{suffix}.obj'
     mesh.export(str(mesh_path))
@@ -179,8 +203,8 @@ def main():
     fig = plt.figure(figsize=(12, 10))
     ax = fig.add_subplot(111, projection='3d')
     v = mesh.vertices
-    ax.scatter(v[predictions==1, 0], v[predictions==1, 1], v[predictions==1, 2], c='blue', s=1, alpha=0.6, label='Tooth')
-    ax.scatter(v[predictions==0, 0], v[predictions==0, 1], v[predictions==0, 2], c='pink', s=1, alpha=0.6, label='Gingiva')
+    ax.scatter(v[predictions==1, 0], v[predictions==1, 1], v[predictions==1, 2], c='#F5F0E1', s=1, alpha=0.8, label='Tooth')
+    ax.scatter(v[predictions==0, 0], v[predictions==0, 1], v[predictions==0, 2], c='#DC7382', s=1, alpha=0.8, label='Gingiva')
     ax.set_xlabel('X'); ax.set_ylabel('Y'); ax.set_zlabel('Z')
     ax.legend()
     plt.tight_layout()

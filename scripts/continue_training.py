@@ -78,7 +78,7 @@ def continue_training(model_path: str, config_path: str = None, additional_epoch
           f"train_acc={history.history['accuracy'][-1]:.4f}, "
           f"val_acc={history.history['val_accuracy'][-1]:.4f}")
 
-    final_model_path = Path(config['paths']['model_dir']) / 'teeth_classifier_v2.keras'
+    final_model_path = Path(config['paths']['model_dir']) / 'teeth_classifier.keras'
     model.save(str(final_model_path))
     print(f"Saved: {final_model_path}")
 

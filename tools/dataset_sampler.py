@@ -187,11 +187,22 @@ class DatasetSampler:
         """
         Sample training points from the currently loaded mesh.
 
+        When boundary_weight > 0 the samples are split into three equal-sized
+        pools so the model sees clear gingiva, clear tooth, and the hard
+        boundary region in equal proportion:
+
+            pool 1 — boundary vertices (any class):  boundary_weight  fraction
+            pool 2 — clear gingiva:                  (1-boundary_weight)/2
+            pool 3 — clear tooth:                    (1-boundary_weight)/2
+
+        Labels are always the true binary class of each vertex.
+        Recommended: boundary_weight = 1/3 ≈ 0.333.
+
         Args:
             n_samples: Number of points to sample
-            balance_classes: If True, sample equal numbers of tooth and gingiva points
-            boundary_weight: Fraction of samples to take from boundary regions (0.0-1.0)
-                           E.g., 0.6 means 60% from boundaries, 40% from clear regions
+            balance_classes: If True, use the three-pool strategy above (or
+                             simple 50/50 gingiva/tooth when boundary_weight=0)
+            boundary_weight: Fraction of samples drawn from boundary vertices.
             boundary_radius: Distance threshold to consider a vertex near boundary
 
         Returns:
@@ -202,117 +213,92 @@ class DatasetSampler:
 
         labels = np.array(self.current_annotations['labels'])
 
-        if balance_classes:
-            # Sample equal numbers from each class
-            gingiva_indices = np.where(labels == GINGIVA_LABEL)[0]
-            teeth_indices = np.where(labels != GINGIVA_LABEL)[0]
-
-            # If boundary weighting is enabled
-            if boundary_weight > 0.0:
-                # Identify boundary vertices
-                is_boundary = self.identify_boundary_vertices(boundary_radius)
-
-                # Split into boundary and clear regions for each class
-                gingiva_boundary = gingiva_indices[is_boundary[gingiva_indices]]
-                gingiva_clear = gingiva_indices[~is_boundary[gingiva_indices]]
-                teeth_boundary = teeth_indices[is_boundary[teeth_indices]]
-                teeth_clear = teeth_indices[~is_boundary[teeth_indices]]
-
-                # Calculate how many samples for each category
-                n_gingiva_total = n_samples // 2
-                n_teeth_total = n_samples - n_gingiva_total
-
-                n_gingiva_boundary = int(n_gingiva_total * boundary_weight)
-                n_gingiva_clear = n_gingiva_total - n_gingiva_boundary
-                n_teeth_boundary = int(n_teeth_total * boundary_weight)
-                n_teeth_clear = n_teeth_total - n_teeth_boundary
-
-                # Sample from each category (with fallback if not enough boundary vertices)
-                selected = []
-
-                # Gingiva boundary
-                if len(gingiva_boundary) >= n_gingiva_boundary:
-                    selected.append(np.random.choice(gingiva_boundary, n_gingiva_boundary, replace=False))
-                else:
-                    # Not enough boundary vertices, sample what we can
-                    selected.append(gingiva_boundary)
-                    # Make up the difference from clear vertices
-                    n_gingiva_clear += (n_gingiva_boundary - len(gingiva_boundary))
-
-                # Gingiva clear
-                if len(gingiva_clear) >= n_gingiva_clear:
-                    selected.append(np.random.choice(gingiva_clear, n_gingiva_clear, replace=False))
-                else:
-                    selected.append(gingiva_clear)
-
-                # Teeth boundary
-                if len(teeth_boundary) >= n_teeth_boundary:
-                    selected.append(np.random.choice(teeth_boundary, n_teeth_boundary, replace=False))
-                else:
-                    selected.append(teeth_boundary)
-                    n_teeth_clear += (n_teeth_boundary - len(teeth_boundary))
-
-                # Teeth clear
-                if len(teeth_clear) >= n_teeth_clear:
-                    selected.append(np.random.choice(teeth_clear, n_teeth_clear, replace=False))
-                else:
-                    selected.append(teeth_clear)
-
-                return np.concatenate(selected).tolist()
-            else:
-                # Original behavior - no boundary weighting
-                n_gingiva = min(n_samples // 2, len(gingiva_indices))
-                n_teeth = min(n_samples - n_gingiva, len(teeth_indices))
-
-                selected_gingiva = np.random.choice(gingiva_indices, n_gingiva, replace=False)
-                selected_teeth = np.random.choice(teeth_indices, n_teeth, replace=False)
-
-                return np.concatenate([selected_gingiva, selected_teeth]).tolist()
-        else:
-            # Random sampling
+        if not balance_classes:
             return np.random.choice(len(labels), min(n_samples, len(labels)),
-                                  replace=False).tolist()
+                                    replace=False).tolist()
+
+        gingiva_indices = np.where(labels == GINGIVA_LABEL)[0]
+        teeth_indices   = np.where(labels != GINGIVA_LABEL)[0]
+
+        if boundary_weight <= 0.0:
+            # Simple 50/50 gingiva / tooth — no boundary pool
+            n_gingiva = min(n_samples // 2, len(gingiva_indices))
+            n_teeth   = min(n_samples - n_gingiva, len(teeth_indices))
+            return np.concatenate([
+                np.random.choice(gingiva_indices, n_gingiva, replace=False),
+                np.random.choice(teeth_indices,   n_teeth,   replace=False),
+            ]).tolist()
+
+        # --- Three-pool balanced sampling ---
+        # Pool sizes: boundary=boundary_weight, clear_gingiva=half of remainder,
+        #             clear_tooth=half of remainder.
+        is_boundary = self.identify_boundary_vertices(boundary_radius)
+
+        boundary_all    = np.where(is_boundary)[0]                           # all boundary verts
+        gingiva_clear   = gingiva_indices[~is_boundary[gingiva_indices]]
+        teeth_clear     = teeth_indices[~is_boundary[teeth_indices]]
+
+        n_boundary    = int(n_samples * boundary_weight)
+        n_clear_each  = (n_samples - n_boundary) // 2
+        # absorb any rounding remainder into teeth_clear pool
+        n_teeth_clear_final  = n_samples - n_boundary - n_clear_each
+
+        def _sample(pool, n):
+            """Sample n from pool, with replacement only if pool is too small."""
+            if len(pool) == 0 or n == 0:
+                return np.array([], dtype=np.int64)
+            replace = len(pool) < n
+            return np.random.choice(pool, n, replace=replace)
+
+        selected = [
+            _sample(boundary_all,  n_boundary),
+            _sample(gingiva_clear, n_clear_each),
+            _sample(teeth_clear,   n_teeth_clear_final),
+        ]
+
+        indices = np.concatenate(selected)
+        actual_gingiva = int(np.sum(labels[indices] == GINGIVA_LABEL))
+        actual_teeth   = len(indices) - actual_gingiva
+        print(f"  Sampled {len(indices)}: {n_boundary} boundary "
+              f"| {n_clear_each} clear-gingiva | {n_teeth_clear_final} clear-tooth "
+              f"-> labels: {actual_gingiva} gingiva / {actual_teeth} tooth")
+
+        return indices.tolist()
     
     def generate_samples(self, sample_indices: List[int]) -> List[TrainingSample]:
-        """
-        Generate training samples for given vertex indices.
-        
-        Args:
-            sample_indices: List of vertex indices to generate samples for
-            
-        Returns:
-            List of TrainingSample objects
-        """
+        """Generate training samples using V3 GPU depth-rendering (geometry-based patches)."""
         if self.current_annotations is None or self.current_mesh is None:
             raise RuntimeError("No scan loaded. Call load_scan() first.")
-            
+
         labels = np.array(self.current_annotations['labels'])
         patient_id = self.current_annotations.get('id_patient', 'unknown')
         jaw = self.current_annotations.get('jaw', 'unknown')
-        
+
+        # Generate all patches in one GPU batch
+        try:
+            from tools.gpu_patch_generator_v3 import GPUPatchGeneratorV3
+            gen = GPUPatchGeneratorV3(
+                self.current_mesh,
+                patch_size=self.patch_size,
+                patch_radius=self.patch_radius,
+            )
+            patches = gen.generate_patches_batch(sample_indices, batch_size=128)
+        except Exception as e:
+            print(f"  V3 GPU generation failed ({e}), falling back to CPU")
+            patches = np.stack([self._generate_image_patch(v) for v in sample_indices])
+
         samples = []
-        
         for i, vertex_idx in enumerate(sample_indices):
-            # Generate image patch
-            patch = self._generate_image_patch(vertex_idx)
-            
-            # Get label (convert FDI to binary: 0=gingiva, 1=tooth)
-            fdi_label = labels[vertex_idx]
-            binary_label = 0 if fdi_label == GINGIVA_LABEL else 1
-            
-            # Create training sample
-            sample = TrainingSample(
-                image_patch=patch,
+            binary_label = 0 if labels[vertex_idx] == GINGIVA_LABEL else 1
+            samples.append(TrainingSample(
+                image_patch=patches[i],
                 label=binary_label,
                 point_index=vertex_idx,
                 point_coords=self.current_mesh.vertices[vertex_idx].copy(),
                 patient_id=patient_id,
                 jaw=jaw
-            )
-            
-            samples.append(sample)
-            
-        
+            ))
+
         return samples
     
     def _generate_image_patch(self, vertex_idx: int) -> np.ndarray:

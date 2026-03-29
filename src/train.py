@@ -120,7 +120,6 @@ class TeethTrainer:
         batch_size = self.config['training']['batch_size']
         epochs = self.config['training']['epochs']
         steps_per_epoch = train_samples // batch_size
-        validation_steps = val_samples // batch_size
 
         print(f"Training: {epochs} epochs, batch_size={batch_size}")
         callbacks = self.get_callbacks()
@@ -131,7 +130,6 @@ class TeethTrainer:
             epochs=epochs,
             steps_per_epoch=steps_per_epoch,
             validation_data=val_dataset,
-            validation_steps=validation_steps,
             callbacks=callbacks,
             verbose=1
         )

@@ -17,15 +17,15 @@ paths:
 
 # Data generation settings
 data_generation:
-  scans_for_training: 100  # Number of scans to use (out of 1850 total)
+  scans_for_training: 400  # Number of scans to use (out of 1850 total)
   samples_per_scan: 500     # Training samples per scan
   patch_size: 100           # Image patch size (100x100)
   patch_radius: 5.0         # Radius around each point for patch generation
   balance_classes: true     # Equal gingiva/tooth samples
 
-  # Boundary-weighted sampling (focus on teeth/gingiva transitions)
-  boundary_weighted: true   # Enable boundary-weighted sampling
-  boundary_weight: 0.60     # 60% from boundaries, 40% from clear regions
+  # Three-pool balanced sampling: 1/3 boundary, 1/3 clear-gingiva, 1/3 clear-tooth
+  boundary_weighted: true
+  boundary_weight: 0.333    # 1/3 from boundary region, 1/3 clear gingiva, 1/3 clear tooth
   boundary_radius: 5.0      # Distance to consider "near boundary"
 
   # Train/validation/test split ratios

@@ -68,18 +68,18 @@ class TeethPredictor:
         if use_gpu:
             try:
                 try:
-                    from tools.gpu_patch_generator_v2 import GPUPatchGeneratorV2
-                    GPUGenerator = GPUPatchGeneratorV2
+                    from tools.gpu_patch_generator_v3 import GPUPatchGeneratorV3
+                    GPUGenerator = GPUPatchGeneratorV3
                 except ImportError:
-                    from tools.gpu_patch_generator import GPUPatchGenerator
-                    GPUGenerator = GPUPatchGenerator
-
-                json_path = obj_path.replace('.obj', '.json')
-                with open(json_path, 'r') as f:
-                    annotations = json.load(f)
+                    try:
+                        from tools.gpu_patch_generator_v2 import GPUPatchGeneratorV2
+                        GPUGenerator = GPUPatchGeneratorV2
+                    except ImportError:
+                        from tools.gpu_patch_generator import GPUPatchGenerator
+                        GPUGenerator = GPUPatchGenerator
 
                 generator = GPUGenerator(
-                    mesh=mesh, annotations=annotations,
+                    mesh=mesh,
                     patch_size=self.config['data_generation']['patch_size'],
                     patch_radius=self.config['data_generation']['patch_radius'],
                     device='cuda'
