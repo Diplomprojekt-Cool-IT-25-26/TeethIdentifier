@@ -9,6 +9,7 @@ import argparse
 import numpy as np
 import trimesh
 import matplotlib.pyplot as plt
+from matplotlib.widgets import Button
 from pathlib import Path
 from scipy.spatial import KDTree
 
@@ -138,6 +139,102 @@ def predict_scan_3d(obj_path: str, model_path: str, config: dict, sample_rate: i
     return mesh, predictions, confidences
 
 
+def _show_toggle_viewer(mesh, predictions):
+    """3D mesh viewer with T to toggle between labeled (predictions) and unlabeled (raw mesh)."""
+    TOOTH_COLOR   = [245, 240, 225, 255]
+    GINGIVA_COLOR = [220, 115, 130, 255]
+    PLAIN_COLOR   = [200, 195, 185, 255]
+
+    n = len(mesh.vertices)
+    labeled_colors = np.where(
+        (predictions == 1)[:, None], TOOTH_COLOR, GINGIVA_COLOR
+    ).astype(np.uint8)
+    unlabeled_colors = np.full((n, 4), PLAIN_COLOR, dtype=np.uint8)
+
+    try:
+        import pyglet
+        from trimesh.viewer.windowed import SceneViewer
+
+        mesh_labeled = trimesh.Trimesh(
+            vertices=mesh.vertices, faces=mesh.faces,
+            vertex_colors=labeled_colors, process=False
+        )
+        mesh_unlabeled = trimesh.Trimesh(
+            vertices=mesh.vertices, faces=mesh.faces,
+            vertex_colors=unlabeled_colors, process=False
+        )
+
+        scene = trimesh.Scene()
+        scene.add_geometry(mesh_labeled,   node_name='labeled',   geom_name='labeled')
+        scene.add_geometry(mesh_unlabeled, node_name='unlabeled', geom_name='unlabeled')
+
+        state = {'labeled': True}
+
+        class ToggleViewer(SceneViewer):
+            def on_key_press(self, symbol, modifiers):
+                if symbol == pyglet.window.key.T:
+                    state['labeled'] = not state['labeled']
+                    if state['labeled']:
+                        self.unhide_geometry('labeled')
+                        self.hide_geometry('unlabeled')
+                        self.set_caption('TeethIdentifier — Labeled (predictions)  |  T = toggle')
+                    else:
+                        self.hide_geometry('labeled')
+                        self.unhide_geometry('unlabeled')
+                        self.set_caption('TeethIdentifier — Unlabeled (raw mesh)  |  T = toggle')
+                else:
+                    super().on_key_press(symbol, modifiers)
+
+        viewer = ToggleViewer(
+            scene=scene,
+            start_loop=False,
+            caption='TeethIdentifier — Labeled (predictions)  |  T = toggle',
+        )
+        viewer.hide_geometry('unlabeled')
+        pyglet.app.run()
+
+    except Exception as e:
+        print(f"3D viewer failed ({e}), falling back to matplotlib")
+        v = mesh.vertices
+        step = max(1, n // 15000)
+        idx = np.arange(0, n, step)
+        v_sub, pred_sub = v[idx], predictions[idx]
+
+        fig = plt.figure(figsize=(14, 10))
+        ax = fig.add_subplot(111, projection='3d')
+        plt.subplots_adjust(bottom=0.12)
+        state2 = {'labeled': True, 'artists': []}
+
+        def redraw(labeled):
+            for a in state2['artists']:
+                a.remove()
+            state2['artists'].clear()
+            if labeled:
+                s1 = ax.scatter(v_sub[pred_sub==1,0], v_sub[pred_sub==1,1], v_sub[pred_sub==1,2], c='#F5F0E1', s=1, alpha=0.9, label='Tooth')
+                s2 = ax.scatter(v_sub[pred_sub==0,0], v_sub[pred_sub==0,1], v_sub[pred_sub==0,2], c='#DC7382', s=1, alpha=0.9, label='Gingiva')
+                state2['artists'] = [s1, s2]
+                ax.set_title('Labeled — Model Predictions  [T to toggle]', fontsize=13)
+            else:
+                s1 = ax.scatter(v_sub[:,0], v_sub[:,1], v_sub[:,2], c='#C0BAB0', s=1, alpha=0.7, label='Raw mesh')
+                state2['artists'] = [s1]
+                ax.set_title('Unlabeled — Raw Mesh  [T to toggle]', fontsize=13)
+            ax.legend(loc='upper right', markerscale=6)
+            fig.canvas.draw_idle()
+
+        redraw(True)
+        ax.set_xlabel('X'); ax.set_ylabel('Y'); ax.set_zlabel('Z')
+        btn_ax = plt.axes([0.38, 0.02, 0.24, 0.06])
+        btn = Button(btn_ax, 'Toggle Labeled / Unlabeled')
+
+        def on_toggle(_event):
+            state2['labeled'] = not state2['labeled']
+            redraw(state2['labeled'])
+
+        btn.on_clicked(on_toggle)
+        fig.canvas.mpl_connect('key_press_event', lambda e: on_toggle(None) if e.key == 't' else None)
+        plt.show()
+
+
 def main():
     parser = argparse.ArgumentParser(description='Visualize 3D dental scan predictions')
     parser.add_argument('--fast', action='store_true', help='Sample 1/25th of vertices')
@@ -213,11 +310,9 @@ def main():
     plt.close()
     print(f"Saved image: {img_path}")
 
-    # Try interactive viewer
-    try:
-        mesh.show()
-    except ImportError:
-        print("Interactive viewer not available (install pyglet<2)")
+    # Interactive 3D viewer with T to toggle labeled/unlabeled
+    print("Opening 3D viewer — press T to toggle labeled/unlabeled")
+    _show_toggle_viewer(mesh, predictions)
 
     return 0
 
