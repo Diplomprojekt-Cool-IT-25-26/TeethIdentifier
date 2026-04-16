@@ -55,3 +55,6 @@ desktop.ini
 
 # Logs
 *.log
+
+# Deprecated files (kept locally for reference, not part of the project)
+deprecated/

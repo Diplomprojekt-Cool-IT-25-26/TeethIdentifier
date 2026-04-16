@@ -13,7 +13,6 @@ tensorflow==2.9.0             # Native Windows GPU support for RTX 3070
 pyyaml>=6.0                   # Configuration files
 scikit-learn>=1.3.0           # Evaluation metrics
 seaborn>=0.12.0               # Visualization (heatmaps, confusion matrix)
-streamlit>=1.30.0             # Interactive dashboard
 tqdm>=4.65.0                  # Progress bars
 pillow>=9.0.0                 # Image processing
 pandas>=2.0.0                 # Data analysis

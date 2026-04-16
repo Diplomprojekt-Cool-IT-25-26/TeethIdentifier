@@ -311,7 +311,7 @@ def main():
     print(f"Saved image: {img_path}")
 
     # Interactive 3D viewer with T to toggle labeled/unlabeled
-    print("Opening 3D viewer — press T to toggle labeled/unlabeled")
+    print("Opening 3D viewer - press T to toggle labeled/unlabeled")
     _show_toggle_viewer(mesh, predictions)
 
     return 0

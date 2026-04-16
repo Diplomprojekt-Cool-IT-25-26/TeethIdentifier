@@ -283,33 +283,33 @@ def postprocess(labels, mesh, open_iters=2, close_iters=2, erode_gingiva_iters=1
     result = labels.copy()
 
     if open_iters > 0:
-        print(f"[Post-processing] Opening on teeth ({open_iters} iter) — removes isolated tooth islands...")
+        print(f"[Post-processing] Opening on teeth ({open_iters} iter) - removes isolated tooth islands...")
         result = opening(result, edges, target_class=1, iterations=open_iters)
 
     if close_iters > 0:
-        print(f"[Post-processing] Closing on teeth ({close_iters} iter) — fills gingiva gaps in tooth regions...")
+        print(f"[Post-processing] Closing on teeth ({close_iters} iter) - fills gingiva gaps in tooth regions...")
         result = closing(result, edges, target_class=1, iterations=close_iters)
 
     if erode_gingiva_iters > 0:
-        print(f"[Post-processing] Eroding gingiva ({erode_gingiva_iters} iter) — shrinks over-predicted gingiva border...")
+        print(f"[Post-processing] Eroding gingiva ({erode_gingiva_iters} iter) - shrinks over-predicted gingiva border...")
         result = erode(result, edges, target_class=0, iterations=erode_gingiva_iters)
 
-    print(f"[Post-processing] Connected component filter (min 500 vertices) — removes isolated blobs...")
+    print(f"[Post-processing] Connected component filter (min 500 vertices) - removes isolated blobs...")
     result = remove_small_components(result, edges, min_size=500)
 
-    print(f"[Post-processing] Boundary smoothing (10 iter) — diffusion-based curve straightening...")
+    print(f"[Post-processing] Boundary smoothing (10 iter) - diffusion-based curve straightening...")
     result = smooth_boundary(result, edges, iterations=10)
 
     if majority_vote_iters > 0:
-        print(f"[Post-processing] Majority vote ({majority_vote_iters} iter) — trims gingiva peninsulas...")
+        print(f"[Post-processing] Majority vote ({majority_vote_iters} iter) - trims gingiva peninsulas...")
         result = majority_vote(result, edges, iterations=majority_vote_iters)
 
     if open_gingiva_iters > 0:
-        print(f"[Post-processing] Opening on gingiva ({open_gingiva_iters} iter) — removes gingiva fingers...")
+        print(f"[Post-processing] Opening on gingiva ({open_gingiva_iters} iter) - removes gingiva fingers...")
         result = opening(result, edges, target_class=0, iterations=open_gingiva_iters)
 
     if reconstruct_iters > 0:
-        print(f"[Post-processing] Morphological reconstruction (erode {reconstruct_iters} iter) — severs fingers then flood-fills back...")
+        print(f"[Post-processing] Morphological reconstruction (erode {reconstruct_iters} iter) - severs fingers then flood-fills back...")
         result = reconstruct_gingiva(result, edges, erode_iters=reconstruct_iters)
 
     n_changed = int(np.sum(result != labels))

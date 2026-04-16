@@ -7,20 +7,29 @@ import yaml
 import argparse
 import numpy as np
 import trimesh
-from tensorflow import keras
 from pathlib import Path
 from datetime import datetime
 from tqdm import tqdm
 from typing import Tuple, List
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from tools.dataset_sampler import DatasetSampler
-
+# torch must be imported before TensorFlow to avoid a Windows DLL conflict
+# where TF's CUDA DLLs prevent torch/lib/shm.dll from loading
 try:
     import torch
     TORCH_AVAILABLE = True
-except ImportError:
+except (ImportError, OSError):
     TORCH_AVAILABLE = False
+
+# Enable TF memory growth so PyTorch can use the rest of VRAM for patch
+# generation. Without this, TF reserves ~70% of VRAM on init and the GPU
+# patch generator thrashes — progressively slower per batch.
+import tensorflow as tf
+for gpu in tf.config.experimental.list_physical_devices('GPU'):
+    tf.config.experimental.set_memory_growth(gpu, True)
+from tensorflow import keras
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from tools.dataset_sampler import DatasetSampler
 
 
 class TeethPredictor:
@@ -47,7 +56,7 @@ class TeethPredictor:
         if not os.path.exists(obj_path):
             raise FileNotFoundError(f"OBJ file not found: {obj_path}")
 
-        mesh = trimesh.load(obj_path)
+        mesh = trimesh.load(obj_path, process=False)
         base_name = Path(obj_path).stem
         parts = base_name.split('_')
 
@@ -67,18 +76,9 @@ class TeethPredictor:
 
         if use_gpu:
             try:
-                try:
-                    from tools.gpu_patch_generator_v3 import GPUPatchGeneratorV3
-                    GPUGenerator = GPUPatchGeneratorV3
-                except ImportError:
-                    try:
-                        from tools.gpu_patch_generator_v2 import GPUPatchGeneratorV2
-                        GPUGenerator = GPUPatchGeneratorV2
-                    except ImportError:
-                        from tools.gpu_patch_generator import GPUPatchGenerator
-                        GPUGenerator = GPUPatchGenerator
+                from tools.gpu_patch_generator_v3 import GPUPatchGeneratorV3
 
-                generator = GPUGenerator(
+                generator = GPUPatchGeneratorV3(
                     mesh=mesh,
                     patch_size=self.config['data_generation']['patch_size'],
                     patch_radius=self.config['data_generation']['patch_radius'],
@@ -193,7 +193,7 @@ def main():
     parser = argparse.ArgumentParser(description="TeethIdentifier Inference")
     parser.add_argument('--obj', type=str, required=True, help="OBJ file or directory")
     parser.add_argument('--output', type=str, default='exports/predictions', help="Output directory")
-    parser.add_argument('--model', type=str, default='models/teeth_classifier.keras', help="Model path")
+    parser.add_argument('--model', type=str, default='ml_outputs/models/teeth_classifier.keras', help="Model path")
     parser.add_argument('--config', type=str, default='config.yaml', help="Config file")
     args = parser.parse_args()
 

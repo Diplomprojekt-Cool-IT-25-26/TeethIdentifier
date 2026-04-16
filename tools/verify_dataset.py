@@ -72,10 +72,10 @@ def main():
     if len(sys.argv) > 1:
         dataset_path = sys.argv[1]
     else:
-        dataset_path = "."
-    
+        dataset_path = "data"
+
     if not os.path.exists(dataset_path):
-        print(f"❌ Path does not exist: {dataset_path}")
+        print(f"[FAIL] Path does not exist: {dataset_path}")
         return
     
     print("=" * 60)
@@ -87,7 +87,7 @@ def main():
     scans = find_all_scans(dataset_path)
     
     if not scans:
-        print("\n❌ No scans found!")
+        print("\n[FAIL] No scans found!")
         print("\nExpected structure:")
         print("  dataset_root/")
         print("  ├── data_part_1/")
@@ -101,7 +101,7 @@ def main():
         print("  │           └── PATIENT_ID_lower.json")
         return
     
-    print(f"\n✓ Found {len(scans)} scans")
+    print(f"\n[OK] Found {len(scans)} scans")
     
     # Count by jaw type
     upper_scans = [s for s in scans if s['jaw'] == 'upper']
@@ -125,11 +125,11 @@ def main():
         result = check_scan_data(scan['json_file'])
         
         if result['valid']:
-            print(f"    ✓ Vertices: {result['vertices']:,}")
-            print(f"    ✓ Teeth: {result['teeth']:,} ({result['unique_teeth']} unique)")
-            print(f"    ✓ Gingiva: {result['gingiva']:,}")
+            print(f"    Vertices: {result['vertices']:,}")
+            print(f"    Teeth: {result['teeth']:,} ({result['unique_teeth']} unique)")
+            print(f"    Gingiva: {result['gingiva']:,}")
         else:
-            print(f"    ❌ Error: {result['error']}")
+            print(f"    [FAIL] {result['error']}")
     
     # Data parts found
     data_parts = set()
@@ -143,10 +143,9 @@ def main():
         print(f"\nData parts found: {', '.join(sorted(data_parts))}")
     
     print("\n" + "=" * 60)
-    print("✓ Dataset verification complete!")
+    print("Dataset verification complete.")
     print("=" * 60)
-    print("\nYou can now use the dataset with:")
-    print("  python teeth_segmentation.py")
+    print("\nNext step: python scripts/generate_data.py")
 
 
 if __name__ == "__main__":
