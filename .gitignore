@@ -8,8 +8,9 @@ data_part_6/
 data_part_7/
 3DTeethSeg_dataset/
 
-# Generated training data
-training_data.pkl
+# All ML outputs (large files - don't commit!)
+ml_outputs/
+!ml_outputs/.gitkeep
 *.pkl
 
 # Generated visualizations
@@ -24,11 +25,17 @@ __pycache__/
 *$py.class
 *.so
 
-# Virtual environments
+# Virtual environments (huge - NEVER commit!)
 venv/
+venv_*/
 env/
 ENV/
 .venv
+
+# Backup files
+*.backup
+*.bak
+*_backup.*
 
 # IDE files
 .vscode/
@@ -48,3 +55,6 @@ desktop.ini
 
 # Logs
 *.log
+
+# Deprecated files (kept locally for reference, not part of the project)
+deprecated/
